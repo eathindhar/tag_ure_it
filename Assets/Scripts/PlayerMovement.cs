@@ -13,17 +13,16 @@ public class PlayerMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        var kb = Keyboard.current;
+        if (kb == null) return;
+        
         Vector2 movement = Vector2.zero;
 
-        if (Keyboard.current.aKey.isPressed)
-            movement.x = -1;
-        else if (Keyboard.current.dKey.isPressed)
-            movement.x = 1;
+        if (kb.aKey.isPressed) movement.x = -1;
+        else if (kb.dKey.isPressed) movement.x = 1;
 
-        if (Keyboard.current.sKey.isPressed)
-            movement.y = -1;
-        else if (Keyboard.current.wKey.isPressed)
-            movement.y = 1;
+        if (kb.sKey.isPressed) movement.y = -1;
+        else if (kb.wKey.isPressed) movement.y = 1;
 
         transform.Translate(movement * Time.deltaTime * 5f);
     }

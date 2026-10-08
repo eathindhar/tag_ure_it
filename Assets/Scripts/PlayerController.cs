@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace TarodevController
 {
@@ -19,6 +20,8 @@ namespace TarodevController
         private FrameInput _frameInput;
         private Vector2 _frameVelocity;
         private bool _cachedQueryStartInColliders;
+        private InputAction _moveAction;
+        private InputAction _jumpAction;
 
         #region Interface
 
@@ -54,8 +57,45 @@ namespace TarodevController
         {
             _rb = GetComponent<Rigidbody2D>();
             _col = GetComponent<CapsuleCollider2D>();
-
             _cachedQueryStartInColliders = Physics2D.queriesStartInColliders;
+
+            // Move
+            _moveAction = new InputAction("Move", InputActionType.Value);
+            _moveAction.AddCompositeBinding("2DVector")
+                .With("Up", "<Keyboard>/w")
+                .With("Down", "<Keyboard>/s")
+                .With("Left", "<Keyboard>/a")
+                .With("Right", "<Keyboard>/d");
+            _moveAction.AddCompositeBinding("2DVector")
+                .With("Up", "<Keyboard>/upArrow")
+                .With("Down", "<Keyboard>/downArrow")
+                .With("Left", "<Keyboard>/leftArrow")
+                .With("Right", "<Keyboard>/rightArrow");
+            _moveAction.AddBinding("<Gamepad>/leftStick");
+
+            // Jump
+            _jumpAction = new InputAction("Jump", InputActionType.Button);
+            _jumpAction.AddBinding("<Keyboard>/space");
+            _jumpAction.AddBinding("<Keyboard>/c");
+            _jumpAction.AddBinding("<Gamepad>/buttonSouth");
+        }
+
+        private void OnEnable()
+        {
+            _moveAction.Enable();
+            _jumpAction.Enable();
+        }
+
+        private void OnDisable()
+        {
+            _moveAction.Disable();
+            _jumpAction.Disable();
+        }
+
+        private void OnDestroy()
+        {
+            _moveAction?.Dispose();
+            _jumpAction?.Dispose();
         }
 
         private void Update()
@@ -67,15 +107,16 @@ namespace TarodevController
         private void GatherInput()
         {
             var uiHorizontal = (_uiRightHeld ? 1 : 0) - (_uiLeftHeld ? 1 : 0);
+            var move = _moveAction.ReadValue<Vector2>();
 
             _frameInput = new FrameInput
             {
-                JumpDown = Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.C) || _uiJumpDownQueued,
-                JumpHeld = Input.GetButton("Jump") || Input.GetKey(KeyCode.C) || _uiJumpHeld,
-                Move = new Vector2(Mathf.Clamp(Input.GetAxisRaw("Horizontal") + uiHorizontal, -1f, 1f), Input.GetAxisRaw("Vertical"))
+                JumpDown = _jumpAction.WasPressedThisFrame() || _uiJumpDownQueued,
+                JumpHeld = _jumpAction.IsPressed() || _uiJumpHeld,
+                Move = new Vector2(Mathf.Clamp(move.x + uiHorizontal, -1f, 1f), move.y)
             };
 
-            _uiJumpDownQueued = false; // one-shot, consumed this frame
+            _uiJumpDownQueued = false;
 
             if (_stats.SnapInput)
             {
